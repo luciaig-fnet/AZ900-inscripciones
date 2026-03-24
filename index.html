@@ -277,18 +277,28 @@
 
   let plazasData = {};
 
+  // ── Llamada via script tag (evita bloqueo CORS de Google) ──
+  function llamarScript(params) {
+    return new Promise((resolve, reject) => {
+      const cbName = 'cb_' + Math.random().toString(36).slice(2);
+      const timeout = setTimeout(() => { delete window[cbName]; reject(new Error('Timeout')); }, 10000);
+      window[cbName] = function(data) { clearTimeout(timeout); delete window[cbName]; resolve(data); };
+      const url = SCRIPT_URL + '?' + new URLSearchParams({ ...params, callback: cbName });
+      const script = document.createElement('script');
+      script.src = url;
+      script.onerror = () => { clearTimeout(timeout); delete window[cbName]; reject(new Error('Error')); };
+      document.head.appendChild(script);
+      setTimeout(() => { try { document.head.removeChild(script); } catch(e){} }, 5000);
+    });
+  }
+
   // ── Cargar plazas al inicio ──────────────────────────
   async function cargarPlazas() {
     try {
-      const res  = await fetch(SCRIPT_URL);
-      const data = await res.json();
-      if (data.ok) {
-        plazasData = data.plazas;
-        renderMeses(data.plazas);
-      }
-    } catch (e) {
-      renderMeses(null);
-    }
+      const data = await llamarScript({});
+      if (data.ok) { plazasData = data.plazas; renderMeses(data.plazas); }
+      else renderMeses(null);
+    } catch (e) { renderMeses(null); }
   }
 
   function renderMeses(plazas) {
@@ -346,9 +356,7 @@
     btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="2" stroke-dasharray="31.4" stroke-dashoffset="10"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg> Enviando...';
 
     try {
-      const params = new URLSearchParams({ action: 'inscribir', nombre, email, mes: mes.value });
-      const res  = await fetch(SCRIPT_URL + '?' + params.toString());
-      const data = await res.json();
+      const data = await llamarScript({ action: 'inscribir', nombre, email, mes: mes.value });
 
       if (data.ok) {
         document.getElementById('formArea').innerHTML = `
