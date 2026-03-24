@@ -346,10 +346,8 @@
     btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="2" stroke-dasharray="31.4" stroke-dashoffset="10"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg> Enviando...';
 
     try {
-      const res  = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ nombre, email, mes: mes.value })
-      });
+      const params = new URLSearchParams({ action: 'inscribir', nombre, email, mes: mes.value });
+      const res  = await fetch(SCRIPT_URL + '?' + params.toString());
       const data = await res.json();
 
       if (data.ok) {
